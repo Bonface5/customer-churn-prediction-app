@@ -1,5 +1,6 @@
 streamlit==1.52.2
-pandas
-numpy
-scikit-learn
-matplotlib
+pandas>=1.5
+numpy>=1.24
+scikit-learn>=1.2
+matplotlib>=3.7
+seaborn>=0.12
