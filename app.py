@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pickle
-import matplotlib.pyplot as plt
+import altair as alt
 
 # =============================
 # Page Configuration
@@ -28,7 +28,6 @@ with open("preprocessor.pkl", "rb") as f:
 # User Input Section
 # =============================
 st.subheader("Customer Information")
-
 col1, col2 = st.columns(2)
 
 with col1:
@@ -82,33 +81,23 @@ if st.button("🔍 Predict Churn"):
     input_processed = preprocessor.transform(input_data)
     churn_prob = model.predict_proba(input_processed)[0][1]
 
-    # =============================
-    # Results Section
-    # =============================
-    st.subheader("📊 Prediction Result")
+    # -----------------------------
+    # Display Results
+    # -----------------------------
+    st.subheader("Prediction Result")
+    st.metric(label="Churn Probability", value=f"{churn_prob:.2%}")
 
-    # 1️⃣ Metric
-    st.metric("Churn Probability", f"{churn_prob:.2%}")
-
-    # 2️⃣ Visual Risk Indicator
-    st.progress(min(churn_prob, 1.0))
-
-    # 3️⃣ Risk Classification
+    # Tuned thresholds for Low / Medium / High
     if churn_prob >= 0.7:
-        risk_label = "🔴 High Risk"
-        st.error("Immediate retention action recommended")
+        st.error("🔴 High risk of churn – immediate retention action recommended")
     elif churn_prob >= 0.5:
-        risk_label = "🟡 Medium Risk"
-        st.warning("Customer should be monitored and engaged")
+        st.warning("🟡 Medium risk of churn – monitor closely")
     else:
-        risk_label = "🟢 Low Risk"
-        st.success("Customer is likely to stay")
+        st.success("🟢 Low risk of churn – customer likely to stay")
 
-    st.write(f"**Risk Category:** {risk_label}")
-
-    # =============================
-    # Interpretation
-    # =============================
+    # -----------------------------
+    # Probability Interpretation
+    # -----------------------------
     st.write("### How to interpret this score")
     st.markdown("""
     - **Below 50%** → Low churn risk  
@@ -116,21 +105,11 @@ if st.button("🔍 Predict Churn"):
     - **70% and above** → High risk (retention action required)
     """)
 
-    # =============================
-    # Business Insight
-    # =============================
-    st.write("### What this means for the business")
-    st.markdown("""
-    - High churn risk customers may require **discounts, loyalty offers, or follow-up calls**
-    - Medium risk customers benefit from **engagement campaigns**
-    - Low risk customers are good candidates for **upselling or referrals**
-    """)
-
-    # =============================
-    # Feature Importance Visualization
-    # =============================
+    # -----------------------------
+    # Feature Importance
+    # -----------------------------
     st.divider()
-    st.subheader("🔍 Top Factors Influencing Churn")
+    st.subheader("Top Factors Influencing Churn")
 
     try:
         feature_names = preprocessor.get_feature_names_out()
@@ -139,15 +118,22 @@ if st.button("🔍 Predict Churn"):
         importance_df = pd.DataFrame({
             "Feature": feature_names,
             "Importance": importances
-        }).sort_values(by="Importance", ascending=False).head(10)
+        }).sort_values(by="Importance", ascending=False)
 
-        fig, ax = plt.subplots()
-        ax.barh(importance_df["Feature"], importance_df["Importance"])
-        ax.invert_yaxis()
-        ax.set_xlabel("Importance Score")
-        ax.set_title("Top 10 Important Features")
+        # Display table
+        st.write("Top 10 most important features used by the model:")
+        st.dataframe(importance_df.head(10), use_container_width=True)
 
-        st.pyplot(fig)
+        # Top 5 bar chart
+        st.write("### Visualizing Top 5 Features")
+        top5 = importance_df.head(5).sort_values(by="Importance")  # ascending for horizontal bars
+
+        chart = alt.Chart(top5).mark_bar(color='#FF6F61').encode(
+            x=alt.X('Importance', title='Importance Score'),
+            y=alt.Y('Feature', sort=None, title='Feature')
+        ).properties(height=250, width=500)
+
+        st.altair_chart(chart, use_container_width=True)
 
     except Exception:
-        st.info("Feature importance visualization not available for this model.")
+        st.info("Feature importance visualization not available for this model setup.")
