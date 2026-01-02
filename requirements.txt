@@ -1,8 +1,5 @@
-# Core
 streamlit==1.52.2
 pandas==2.1.0
 numpy==1.26.0
 scikit-learn==1.7.2
-
-# Optional / visualization
 matplotlib==3.8.1
